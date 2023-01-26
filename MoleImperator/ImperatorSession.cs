@@ -1,4 +1,5 @@
-﻿using PuppeteerSharp;
+﻿using System.Security.Authentication;
+using PuppeteerSharp;
 using PuppeteerSharp.Input;
 
 namespace MoleImperator;
@@ -17,9 +18,9 @@ public class ImperatorSession
     public TimeSpan ActiveTime => DateTime.Now - ActivationTime;
     
     /// <summary>
-    /// Molehill Empire invalidates sessions after 2h.
+    /// Molehill Empire invalidates sessions after 2h, ImperatorSession gets invalidated after 1h 45m to keep it simple.
     /// </summary>
-    public bool IsValid => ActiveTime.TotalHours < 2 && IsLoggedIn;
+    public bool IsValid => ActiveTime.TotalMinutes < (60 + 45) && IsLoggedIn;
     
     public bool IsLoggedIn { get; private set; }
 
@@ -98,13 +99,43 @@ public class ImperatorSession
                 ActivationTime = DateTime.Now;
 
                 await _page.RemovePopups();
-                await ScanFields();
+                await ScanJars();
+                await ScanFields(false);
             }
         }
     }
 
 
-    public async Task ScanFields()
+    #region InGarden
+
+    private async Task EnsureIsInGarden()
+    {
+        if (!IsValid)
+        {
+            throw new InvalidCredentialException("ImperatorSession is invalid. Ensure it's logged in with correct credentials and the underlying MolehillEmpire-Session is valid too.");
+        }
+        
+        
+    }
+    
+    public async Task ScanJars()
+    {
+        _garden.SeedAmounts.Clear();
+        foreach (var (type, data) in PlantTypeData.Data)
+        {
+            await _page.SelectAndDo(data.SeedAmountSelector, async e =>
+            {
+                var amount = await (await e.GetPropertyAsync("innerText")).JsonValueAsync() as string;
+                if (int.TryParse(amount, out var amountNum))
+                {
+                    _garden.SeedAmounts[type] = amountNum;
+                }
+            });
+            
+        }
+    }
+     
+    public async Task ScanFields(bool skipWeeds = true)
     {
         await PerField(async (handle, page, tile) =>
         {
@@ -141,6 +172,7 @@ public class ImperatorSession
                 return;
             }
             
+            
             // TODO: Lookup type from string
             if (!PlantTypeData.Types.TryGetValue(name, out var type))
             {
@@ -148,9 +180,17 @@ public class ImperatorSession
                 tile.Update(PlantType.None, DateTime.MaxValue);
                 return;
             }
+            
+            // weed?
+            if ((uint) type > 1000)
+            {
+                // Is weed.
+                tile.Update(type, DateTime.MaxValue);
+                return;
+            }
 
             var timeUntilDone = TimeSpan.FromDays(365);
-            await _page.SelectAndDo("#gtt_zeit", async e =>
+            await _page!.SelectAndDo("#gtt_zeit", async e =>
             {
                 // format: "fertig", "hh:mm:ss", "dd:hh:mm:ss"
                 var timeString = await (await e.GetPropertyAsync("innerText")).JsonValueAsync() as string;
@@ -172,17 +212,149 @@ public class ImperatorSession
             tile.Update(type, DateTime.Now + timeUntilDone);
 
             Console.WriteLine($"Found Tile: {tile.Type}, done at {tile.FinishedAt}");
+        }, skipWeeds);
+    }
+
+    public int GetFreeTileCount()
+    {
+        return _garden.Tiles.Count(tile => tile.Type == PlantType.None);
+    }
+
+    public async Task<float> GetMoney()
+    {
+        var money = -1f;
+        await _page!.SelectAndDo("#bar", async e =>
+        {
+            var text = await (await e.GetPropertyAsync("innerText")).JsonValueAsync() as string;
+            if (text != null)
+            {
+                float.TryParse(text, out money);
+            }
         });
+
+        return money;
+    }
+
+    public async Task RemoveWeedsFor(float cap)
+    {
+        var order = new Stack<PlantType>();
+        order.Push(PlantType.Weeds_XL);
+        order.Push(PlantType.Weeds_L);
+        order.Push(PlantType.Weeds_M);
+        order.Push(PlantType.Weeds_S);
+
+        var totalCost = 0f;
+        
+        while (totalCost < cap && order.Count > 0)
+        {
+            var type = order.Pop();
+            var data = PlantTypeData.Data[type];
+            if (totalCost + data.RefPrice > cap)
+            {
+                // skip. to expensive.
+                continue;
+            }
+            
+            foreach (var tile in _garden.Tiles)
+            {
+                if (tile.Type == type)
+                {
+                    if (totalCost + data.RefPrice > cap)
+                    {
+                        // skip. to expensive.
+                        continue;
+                    }
+                    
+                    // Remove.
+                    await _page!.SelectAndDo(tile.Selector, e => e.ClickAsync());
+                    await Task.Delay(100);
+                    await _page!.SelectAndDo("#baseDialogButton", e => e.ClickAsync());
+                    await Task.Delay(250);
+                    await _page!.RemovePopups();
+                    
+                    tile.Update(PlantType.None, DateTime.MaxValue);
+
+                    totalCost += data.RefPrice;
+                }
+            }
+        }
+
+        await ScanFields();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="amount"></param>
+    /// <returns>Amount of actually planted seeds.</returns>
+    public async Task<int> Plant(PlantType type, int amount)
+    {
+        // click seed jar
+        if (!PlantTypeData.Data.TryGetValue(type, out var typeData))
+        {
+            throw new ArgumentException($"Plant Type {type} is not plantable.");
+        }
+        
+        // enough seeds?
+        await ScanJars();
+        if (!_garden.SeedAmounts.TryGetValue(type, out var availableSeeds))
+        {
+            // no seeds at all.
+            return 0;
+        }
+
+        var totalPlantsPossible = Math.Min(amount, availableSeeds);
+
+        var jarClicked = false;
+        await _page!.SelectAndDo(typeData.JarSelector, async element =>
+        {
+            jarClicked = true;
+            await element.ClickAsync();
+        });
+
+        if (!jarClicked)
+        {
+            return 0;
+        }
+
+        var planted = 0;
+        await PerField(async (handle, page, tile) =>
+        {
+            if (planted >= totalPlantsPossible)
+            {
+                return;
+            }
+            
+            if (tile.Type == PlantType.None)
+            {
+                planted++;
+                await handle.ClickAsync();
+                await Task.Delay(200);
+                tile.Update(type, DateTime.Now + TimeSpan.FromSeconds(typeData.GrowTimeSeconds));
+            }
+        });
+
+        return planted;
+    }
+
+    public async Task HarvestAll()
+    {
+        await _page!.EvaluateExpressionAsync("gardenjs.harvestAll()");
+        await Task.Delay(2500);
+        await _page.CloseHarvestPopUps();
+        
+        // We need a rescan now. (Still faster than harvesting bit by bit as it's not sending and waiting for requests and clicking through pop-ups this way)
+        await ScanFields();
+        await ScanJars();
     }
 
     #region Helpers
 
     private Garden _garden = new Garden();
     
-    
-    
     public delegate Task PerFieldAction(IElementHandle handle, IPage page, Tile tile);
-    private async Task PerField(PerFieldAction action)
+    private async Task PerField(PerFieldAction action, bool skipWeeds = true)
     {
         if (!IsValid)
         {
@@ -191,7 +363,12 @@ public class ImperatorSession
         
         foreach (var tile in _garden.Tiles)
         {
-            await _page.SelectAndDo(tile.Selector, async e =>
+            if (skipWeeds && (uint)tile.Type > 1000)
+            {
+                continue;
+            }
+            
+            await _page!.SelectAndDo(tile.Selector, async e =>
             {
                 await action(e, _page!, tile);
             });
@@ -201,6 +378,79 @@ public class ImperatorSession
     
 
     #endregion
+
+    #endregion
+
+
+    #region Navigate
+
+    public enum ImperatorPage
+    {
+        Garden1,
+        Village,
+        Market,
+        
+    }
+
+    private ImperatorPage currentPage = ImperatorPage.Garden1;
+
+    public async Task NavigateToGarden1()
+    {
+        switch (currentPage)
+        {
+            case ImperatorPage.Garden1:
+                return;
+            
+            case ImperatorPage.Market:
+                await _page.EvaluateExpressionAsync("parent.parent.stadt_schliesseFrame();");
+                await Task.Delay(2000);
+                await _page.EvaluateExpressionAsync("parent.stadtVerlassen();");
+                break;
+            
+            case ImperatorPage.Village:
+                await _page.EvaluateExpressionAsync("parent.stadtVerlassen();");
+                break;
+                
+                
+        }
+        await Task.Delay(2000);
+    }
     
+    public async Task NavigateTo(ImperatorPage page)
+    {
+        if (page == currentPage)
+        {
+            return;
+        }
+
+        // navigate home, then navigate from home TO the wanted page.
+        // not always the most efficient way of doing things, but the easiest to manage in the long run.
+        // if you want a small project:
+        // this would be a great use-case of a graph, needed transition-calls linked to the directional connections and pathfinding between the nodes (pages).
+        await NavigateToGarden1();
+
+        currentPage = page;
+        
+        switch (page)
+        {
+            case ImperatorPage.Village:
+                await _page.EvaluateExpressionAsync("wimparea.openMap()");
+                break;
+            
+            case ImperatorPage.Garden1:
+                return;
+            
+            case ImperatorPage.Market:
+                await _page.EvaluateExpressionAsync("wimparea.openMap()");
+                await Task.Delay(2000);
+                await _page.EvaluateExpressionAsync("parent.zeige('markt')");
+                break;
+        }
+        
+        await Task.Delay(2000);
+    }
+    
+
+    #endregion
     
 }

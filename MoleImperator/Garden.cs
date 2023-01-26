@@ -4,6 +4,8 @@ public class Garden
 {
     public readonly Tile[] Tiles = new Tile[204];
 
+    public readonly Dictionary<PlantType, int> SeedAmounts = new Dictionary<PlantType, int>();
+
     public Garden()
     {
         for (int i = 0; i < Tiles.Length; i++)
@@ -18,7 +20,10 @@ public enum PlantType: uint
 {
     None = 0,
     Unknown = 9998,
-    Weeds = 99999,
+    Weeds_S = 10000,
+    Weeds_M = 10001,
+    Weeds_L = 10002,
+    Weeds_XL = 10003,
     Salad = 2,
     Carrot = 6,
     Cucumber = 12,
@@ -40,16 +45,21 @@ public enum PlantType: uint
 
 public class PlantTypeData
 {
+    
     public static readonly Dictionary<PlantType, PlantTypeData> Data = GetData();
 
     private static Dictionary<PlantType, PlantTypeData> GetData()
     {
         var dict = new Dictionary<PlantType, PlantTypeData>()
         {
-            { PlantType.Salad , new PlantTypeData{RefPrice = 0.05f, InGameName = "Salat", GrowTimeSeconds = 14*60, Offspring = 2}},
-            { PlantType.Carrot , new PlantTypeData{RefPrice = 0.05f, InGameName = "Karotte", GrowTimeSeconds = 10*60, Offspring = 2}},
-            { PlantType.Cucumber , new PlantTypeData{RefPrice = 0.05f, InGameName = "Gurke", GrowTimeSeconds = 40*60, Offspring = 4}},
-            { PlantType.Radish , new PlantTypeData{RefPrice = 0.05f, InGameName = "Radieschen", GrowTimeSeconds = 50*60, Offspring = 3}},
+            { PlantType.Salad , new PlantTypeData{Type = PlantType.Salad,RefPrice = 0.05f, InGameName = "Salat", GrowTimeSeconds = 14*60, Offspring = 2}},
+            { PlantType.Carrot , new PlantTypeData{Type = PlantType.Carrot,RefPrice = 0.05f, InGameName = "Karotte", GrowTimeSeconds = 10*60, Offspring = 2}},
+            { PlantType.Cucumber , new PlantTypeData{Type = PlantType.Cucumber,RefPrice = 0.05f, InGameName = "Gurke", GrowTimeSeconds = 40*60, Offspring = 4}},
+            { PlantType.Radish , new PlantTypeData{Type = PlantType.Radish,RefPrice = 0.05f, InGameName = "Radieschen", GrowTimeSeconds = 50*60, Offspring = 3}},
+            { PlantType.Weeds_S , new PlantTypeData{Type = PlantType.Weeds_S,RefPrice = 2.5f, InGameName = "Unkraut", GrowTimeSeconds = -1, Offspring = 0}},
+            { PlantType.Weeds_M , new PlantTypeData{Type = PlantType.Weeds_M,RefPrice = 50f, InGameName = "Stein", GrowTimeSeconds = -1, Offspring = 0}},
+            { PlantType.Weeds_L , new PlantTypeData{Type = PlantType.Weeds_L,RefPrice = 250f, InGameName = "Baumstumpf", GrowTimeSeconds = -1, Offspring = 0}},
+            { PlantType.Weeds_XL , new PlantTypeData{Type = PlantType.Weeds_XL,RefPrice = 500f, InGameName = "Maulwurf", GrowTimeSeconds = -1, Offspring = 0}},
         };
         return dict;
     }
@@ -73,6 +83,9 @@ public class PlantTypeData
         
     }
 
+    public PlantType Type { get; init; }
+    public string JarSelector => $"#regal_{(uint)Type}";
+    public string SeedAmountSelector => $"#regal_{(uint)Type} .anz";
     public float RefPrice { get; init; }
     public string InGameName { get; init; }
     public float GrowTimeSeconds { get; init; }

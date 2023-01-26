@@ -9,11 +9,28 @@ public static class ImperatorHelpers
     {
         await p.AcceptCookieBanner();
         await p.AcceptDailyRewards();
+        await p.CloseTutorial();
+        await p.CloseHarvestPopUps();
     }
 
     public static async Task AcceptCookieBanner(this IPage p)
     {
-        await p.SelectAndDo(".cookiemon-btn-accept", e => e.ClickAsync(new ClickOptions{Delay = 10}));
+        await p.SelectAndDo(".cookiemon-btn-accept", e => e.ClickAsync());
+    }
+
+    public static async Task CloseTutorial(this IPage p)
+    {
+        await p.SelectAndDo("#tutorialClose", e => e.ClickAsync());
+        await p.EvaluateExpressionAsync("$('achievement').hide();");
+        await p.EvaluateExpressionAsync("bonuspack.close();");
+            
+    }
+
+    public static async Task CloseHarvestPopUps(this IPage p)
+    {
+        await p.EvaluateExpressionAsync("basedialog.close()");
+        await p.EvaluateExpressionAsync("$('ernte_log').hide();$('glock').hide();");
+        //await p.SelectAndDo("img.link.closeBtn", e => e.ClickAsync());
     }
 
     public static async Task AcceptDailyRewards(this IPage p)
@@ -28,7 +45,7 @@ public static class ImperatorHelpers
     {
         var elem = await p.QuerySelectorAsync(selector);
 
-        if (elem != null)
+        if (elem != null && await elem.BoundingBoxAsync() != null)
         {
             await action(elem);
         }
