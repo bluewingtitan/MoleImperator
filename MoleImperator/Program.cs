@@ -1,19 +1,24 @@
 ﻿using MoleImperator;
 using PuppeteerSharp;
 
-var fetcher = new BrowserFetcher(new BrowserFetcherOptions
-{
-    Product = Product.Chrome,
-});
-await fetcher.DownloadAsync();
+await ImperatorHelpers.EnsureBrowserAvailable();
 
-var credentials = new ImperatorCredentials(5, "bluebloods", "j$AGntY6!7xkYwi^6Ch8Pcxuzi");
+// Account to use
+var credentials = TestAccounts.MoleImp1;
 
 var browser = await Puppeteer.LaunchAsync(new LaunchOptions
 {
     Headless = false,
+    DefaultViewport = new ViewPortOptions
+    {
+        Width = 1920,
+        Height = 1080,
+        IsLandscape = true,
+        IsMobile = false,
+    }
     
 });
 
 var session = new ImperatorSession(browser);
 await session.LogIn(credentials);
+Console.WriteLine(session.IsLoggedIn);
