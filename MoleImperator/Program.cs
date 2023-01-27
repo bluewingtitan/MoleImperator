@@ -1,38 +1,103 @@
-﻿using MoleImperator;
+﻿using System.Net.Mime;
+using MoleImperator;
+using PuppeteerExtraSharp;
+using PuppeteerExtraSharp.Plugins.ExtraStealth;
 using PuppeteerSharp;
 
 await ImperatorHelpers.EnsureBrowserAvailable();
 
 // Account to use
 var credentials = TestAccounts.MoleImp1;
+var extra = new PuppeteerExtra(); 
 
+// Use stealth plugin
+extra.Use(new StealthPlugin());   
+
+var browser = await extra.LaunchAsync(new LaunchOptions
+{
+    Headless = true,
+    DefaultViewport = new ViewPortOptions
+    {
+        Width = 1920,
+        Height = 1080,
+        IsLandscape = true,
+        IsMobile = false,
+    },
+    Args = new []{"--window-size=1920,1080", @$"--user-agent=""{ImperatorSession.USER_AGENT}"""}
+    
+});
+var retryCount = 0;
 while (true)
 {
-    var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+    Console.WriteLine("New iteration starts now.");
+
+    BrowserContext? context = null;
+    
+    try
     {
-        Headless = false,
-        DefaultViewport = new ViewPortOptions
+        context = await browser.CreateIncognitoBrowserContextAsync();
+        var session = new ImperatorSession(context);
+        await session.LogIn(credentials);
+
+        await session.HarvestAll();
+        var amount = session.GetPlantableTileCount();
+    
+        var toPlant = new List<PlantType>()
         {
-            Width = 1920,
-            Height = 1080,
-            IsLandscape = true,
-            IsMobile = false,
-        },
-        Args = new []{"--start-maximized"}
-    
-    });
-    
-    var session = new ImperatorSession(browser);
-    await session.LogIn(credentials);
+            PlantType.Salad,
+            PlantType.Carrot,
+            PlantType.Cucumber,
+            PlantType.Radish,
+            PlantType.Tomato,
+            PlantType.Strawberry,
+            PlantType.Spinach,
+            PlantType.Onion,
+        };
 
-    await session.HarvestAll();
-    var amount = session.GetFreeTileCount();
-    await session.Plant(PlantType.Carrot, amount/2);
-    await session.Plant(PlantType.Salad, amount/2);
+        var toPlantAmount = amount / toPlant.Count;
+
+        foreach (var type in toPlant)
+        {
+            await session.EnsureIsPlanted(type, toPlantAmount);
+        }
+
+        var leftOver = session.GetPlantableTileCount();
+        if (leftOver > 0)
+        {
+            await session.Plant(toPlant[0], leftOver);
+        }
 
 
-    await Task.Delay(1000 * 60); 
-    await browser.CloseAsync();
+        await Task.Delay(1000 * 60);
+    }
+    catch (Exception e)
+    {
+        // retry.
 
+        if (context != null)
+        {
+            await context.CloseAsync();
+        }
+        
+        Console.WriteLine($"Exception occured while processing Iteration: {e.GetType().FullName}.");
+
+        if (retryCount > 3)
+        {
+            Console.WriteLine("Too many exceptions. Make sure the used account is valid and your internet connection is stable.");
+            await browser.CloseAsync();
+            throw;
+        }
+        
+        retryCount++;
+        Console.WriteLine($"Retry {retryCount}/3...");
+        continue;
+    }
+    retryCount = 0;
+
+    await context.CloseAsync();
+
+    Console.WriteLine($"Next iteration will happen at {DateTime.Now + TimeSpan.FromMinutes(13)}");
     await Task.Delay(1000 * 60 * 13);
 }
+
+await browser.CloseAsync();

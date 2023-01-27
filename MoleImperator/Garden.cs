@@ -52,10 +52,16 @@ public class PlantTypeData
     {
         var dict = new Dictionary<PlantType, PlantTypeData>()
         {
-            { PlantType.Salad , new PlantTypeData{Type = PlantType.Salad,RefPrice = 0.05f, InGameName = "Salat", GrowTimeSeconds = 14*60, Offspring = 2}},
-            { PlantType.Carrot , new PlantTypeData{Type = PlantType.Carrot,RefPrice = 0.05f, InGameName = "Karotte", GrowTimeSeconds = 10*60, Offspring = 2}},
-            { PlantType.Cucumber , new PlantTypeData{Type = PlantType.Cucumber,RefPrice = 0.05f, InGameName = "Gurke", GrowTimeSeconds = 40*60, Offspring = 4}},
-            { PlantType.Radish , new PlantTypeData{Type = PlantType.Radish,RefPrice = 0.05f, InGameName = "Radieschen", GrowTimeSeconds = 50*60, Offspring = 3}},
+            { PlantType.Salad , new PlantTypeData{Type = PlantType.Salad,RefPrice = 0.08f, InGameName = "Salat", GrowTimeSeconds = 14*60, Offspring = 2}},
+            { PlantType.Carrot , new PlantTypeData{Type = PlantType.Carrot,RefPrice = 0.07f, InGameName = "Karotte", GrowTimeSeconds = 10*60, Offspring = 2}},
+            { PlantType.Cucumber , new PlantTypeData{Type = PlantType.Cucumber,RefPrice = 0.15f, InGameName = "Gurke", GrowTimeSeconds = 40*60, Offspring = 4}},
+            { PlantType.Radish , new PlantTypeData{Type = PlantType.Radish,RefPrice = 0.20f, InGameName = "Radieschen", GrowTimeSeconds = 50*60, Offspring = 3}},
+            { PlantType.Tomato , new PlantTypeData{Type = PlantType.Tomato,RefPrice = 0.49f, InGameName = "Tomate", GrowTimeSeconds = 2*60*60 + 20*60, Offspring = 4}},
+            { PlantType.Strawberry , new PlantTypeData{Type = PlantType.Strawberry,RefPrice = 0.45f, InGameName = "Erdbeere", GrowTimeSeconds = 2*60*60, Offspring = 4}},
+            { PlantType.Onion , new PlantTypeData{Type = PlantType.Onion,RefPrice = 0.45f, InGameName = "Zwiebel", GrowTimeSeconds = 8*60*60, Offspring = 4}},
+            { PlantType.Spinach , new PlantTypeData{Type = PlantType.Spinach,RefPrice = 0.45f, InGameName = "Spinat", GrowTimeSeconds = 9*60*60 + 20*60, Offspring = 4}},
+            
+            
             { PlantType.Weeds_S , new PlantTypeData{Type = PlantType.Weeds_S,RefPrice = 2.5f, InGameName = "Unkraut", GrowTimeSeconds = -1, Offspring = 0}},
             { PlantType.Weeds_M , new PlantTypeData{Type = PlantType.Weeds_M,RefPrice = 50f, InGameName = "Stein", GrowTimeSeconds = -1, Offspring = 0}},
             { PlantType.Weeds_L , new PlantTypeData{Type = PlantType.Weeds_L,RefPrice = 250f, InGameName = "Baumstumpf", GrowTimeSeconds = -1, Offspring = 0}},
@@ -93,6 +99,28 @@ public class PlantTypeData
     public int XSize { get; init; } = 1;
     public int YSize { get; init; } = 1;
 
+}
+
+public enum WimpAnswer
+{
+    Deny,
+    Wait,
+    Accept
+}
+
+public class Wimp
+{
+    public float Payment { get; init; }
+    public List<WimpRequest> Requests = new List<WimpRequest>();
+    public float TotalMarketPrice => Requests.Sum(e => e.MarketPrice);
+}
+
+public struct WimpRequest
+{
+    public PlantType Type { get; init; }
+    public int Amount { get; init; }
+    public float MarketPrice => Data.RefPrice * Amount;
+    public PlantTypeData Data => PlantTypeData.Data[Type];
 }
 
 public class Tile

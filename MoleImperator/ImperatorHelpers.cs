@@ -5,7 +5,7 @@ namespace MoleImperator;
 
 public static class ImperatorHelpers
 {
-    public static async Task RemovePopups(this IPage p)
+    public static async Task RemovePopups(this Page p)
     {
         await p.AcceptCookieBanner();
         await p.AcceptDailyRewards();
@@ -13,12 +13,12 @@ public static class ImperatorHelpers
         await p.CloseHarvestPopUps();
     }
 
-    public static async Task AcceptCookieBanner(this IPage p)
+    public static async Task AcceptCookieBanner(this Page p)
     {
         await p.SelectAndDo(".cookiemon-btn-accept", e => e.ClickAsync());
     }
 
-    public static async Task CloseTutorial(this IPage p)
+    public static async Task CloseTutorial(this Page p)
     {
         await p.SelectAndDo("#tutorialClose", e => e.ClickAsync());
         await p.EvaluateExpressionAsync("$('achievement').hide();");
@@ -26,22 +26,31 @@ public static class ImperatorHelpers
             
     }
 
-    public static async Task CloseHarvestPopUps(this IPage p)
+    public static async Task CloseHarvestPopUps(this Page p)
     {
         await p.EvaluateExpressionAsync("basedialog.close()");
         await p.EvaluateExpressionAsync("$('ernte_log').hide();$('glock').hide();");
         //await p.SelectAndDo("img.link.closeBtn", e => e.ClickAsync());
     }
 
-    public static async Task AcceptDailyRewards(this IPage p)
+    public static async Task AcceptDailyRewards(this Page p)
     {
         await p.EvaluateExpressionAsync("dailyloginbonus.getReward()");
         await Task.Delay(1000);
         await p.EvaluateExpressionAsync("dailyloginbonus.close()");
     }
 
-    public delegate Task ElementHandleAction(IElementHandle handle);
-    public static async Task SelectAndDo(this IPage p, string selector, ElementHandleAction action)
+    public delegate Task ElementHandleAction(ElementHandle handle);
+    public static async Task SelectAndDo(this Page p, string selector, ElementHandleAction action)
+    {
+        var elem = await p.QuerySelectorAsync(selector);
+
+        if (elem != null && await elem.BoundingBoxAsync() != null)
+        {
+            await action(elem);
+        }
+    }
+    public static async Task SelectAndDo(this ElementHandle p, string selector, ElementHandleAction action)
     {
         var elem = await p.QuerySelectorAsync(selector);
 
@@ -51,6 +60,16 @@ public static class ImperatorHelpers
         }
     }
 
+    public static async Task ScreenshotNow(this Page p)
+    {
+        await p.ScreenshotAsync(@$"D:\dev\MoleImperator\screenshots\{DateTime.Now.ToFileTimeUtc()}.png");
+    }
+    
+    public static async Task ClearCookies(this Page p)
+    {
+        var cookies = await p.GetCookiesAsync();
+        await p.DeleteCookieAsync(cookies);
+    }
 
     public static async Task EnsureBrowserAvailable()
     {
@@ -58,7 +77,11 @@ public static class ImperatorHelpers
         {
             Product = Product.Chrome,
         });
+        Console.WriteLine("Potentially Downloading Browser. This might take a while.");
+        fetcher.DownloadProgressChanged += (sender, args) => Console.WriteLine($"Download Progress: {args.ProgressPercentage}%");
         await fetcher.DownloadAsync();
+        
+        Console.Clear();
     }
 
 
