@@ -1,17 +1,17 @@
-﻿using System.Net.Mime;
-using MoleImperator;
+﻿using MoleImperator;
 using PuppeteerExtraSharp;
 using PuppeteerExtraSharp.Plugins.ExtraStealth;
 using PuppeteerSharp;
 
 await ImperatorHelpers.EnsureBrowserAvailable();
+ImperatorHelpers.KillOldChrome();
 
 // Account to use
 var credentials = TestAccounts.MoleImp1;
 var extra = new PuppeteerExtra(); 
 
 // Use stealth plugin
-extra.Use(new StealthPlugin());   
+extra.Use(new StealthPlugin());
 
 var browser = await extra.LaunchAsync(new LaunchOptions
 {
@@ -27,6 +27,7 @@ var browser = await extra.LaunchAsync(new LaunchOptions
     
 });
 var retryCount = 0;
+var i = 0;
 while (true)
 {
     Console.WriteLine("New iteration starts now.");
@@ -38,13 +39,18 @@ while (true)
         context = await browser.CreateIncognitoBrowserContextAsync();
         var session = new ImperatorSession(context);
         await session.LogIn(credentials);
+        
+        Console.WriteLine("Logged in.");
 
         await session.HarvestAll();
+        Console.WriteLine("Harvested.");
+        
         var amount = session.GetPlantableTileCount();
     
         var toPlant = new List<PlantType>()
         {
             PlantType.Salad,
+            PlantType.Carrot,
             PlantType.Carrot,
             PlantType.Cucumber,
             PlantType.Radish,
@@ -66,6 +72,8 @@ while (true)
         {
             await session.Plant(toPlant[0], leftOver);
         }
+        
+        Console.WriteLine("Planted.");
 
 
         await Task.Delay(1000 * 60);
@@ -93,10 +101,12 @@ while (true)
         continue;
     }
     retryCount = 0;
+    i++;
 
     await context.CloseAsync();
 
-    Console.WriteLine($"Next iteration will happen at {DateTime.Now + TimeSpan.FromMinutes(13)}");
+    Console.Clear();
+    Console.WriteLine($"Next iteration ({i+1}) will happen at {DateTime.Now + TimeSpan.FromMinutes(13)}");
     await Task.Delay(1000 * 60 * 13);
 }
 

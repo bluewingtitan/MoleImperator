@@ -58,8 +58,8 @@ public class PlantTypeData
             { PlantType.Radish , new PlantTypeData{Type = PlantType.Radish,RefPrice = 0.20f, InGameName = "Radieschen", GrowTimeSeconds = 50*60, Offspring = 3}},
             { PlantType.Tomato , new PlantTypeData{Type = PlantType.Tomato,RefPrice = 0.49f, InGameName = "Tomate", GrowTimeSeconds = 2*60*60 + 20*60, Offspring = 4}},
             { PlantType.Strawberry , new PlantTypeData{Type = PlantType.Strawberry,RefPrice = 0.45f, InGameName = "Erdbeere", GrowTimeSeconds = 2*60*60, Offspring = 4}},
-            { PlantType.Onion , new PlantTypeData{Type = PlantType.Onion,RefPrice = 0.45f, InGameName = "Zwiebel", GrowTimeSeconds = 8*60*60, Offspring = 4}},
-            { PlantType.Spinach , new PlantTypeData{Type = PlantType.Spinach,RefPrice = 0.45f, InGameName = "Spinat", GrowTimeSeconds = 9*60*60 + 20*60, Offspring = 4}},
+            { PlantType.Onion , new PlantTypeData{Type = PlantType.Onion,RefPrice = 1.8f, InGameName = "Zwiebel", GrowTimeSeconds = 8*60*60, Offspring = 4}},
+            { PlantType.Spinach , new PlantTypeData{Type = PlantType.Spinach,RefPrice = 2.20f, InGameName = "Spinat", GrowTimeSeconds = 9*60*60 + 20*60, Offspring = 4}},
             
             
             { PlantType.Weeds_S , new PlantTypeData{Type = PlantType.Weeds_S,RefPrice = 2.5f, InGameName = "Unkraut", GrowTimeSeconds = -1, Offspring = 0}},
@@ -84,7 +84,9 @@ public class PlantTypeData
         return dict;
     }
 
+#pragma warning disable CS8618
     private PlantTypeData()
+#pragma warning restore CS8618
     {
         
     }

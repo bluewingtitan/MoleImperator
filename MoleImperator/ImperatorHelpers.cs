@@ -1,5 +1,5 @@
-﻿using PuppeteerSharp;
-using PuppeteerSharp.Input;
+﻿using System.Diagnostics;
+using PuppeteerSharp;
 
 namespace MoleImperator;
 
@@ -82,6 +82,15 @@ public static class ImperatorHelpers
         await fetcher.DownloadAsync();
         
         Console.Clear();
+    }
+
+    public static void KillOldChrome()
+    {
+        Console.WriteLine("This program kills all instances of chrome on startup. This is to clean browser-instances that sometimes get leaked by Puppeteer-Sharp.");
+        foreach (var process in Process.GetProcessesByName("chrome"))
+        {
+            process.Kill();
+        }
     }
 
 
