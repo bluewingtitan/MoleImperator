@@ -8,6 +8,7 @@ public static class ImperatorHelpers
     public static async Task RemovePopups(this Page p)
     {
         await p.AcceptCookieBanner();
+        await p.RemoveLightBoxes();
         await p.AcceptDailyRewards();
         await p.CloseTutorial();
         await p.CloseHarvestPopUps();
@@ -38,6 +39,11 @@ public static class ImperatorHelpers
         await p.EvaluateExpressionAsync("dailyloginbonus.getReward()");
         await Task.Delay(1000);
         await p.EvaluateExpressionAsync("dailyloginbonus.close()");
+    }
+
+    public static async Task RemoveLightBoxes(this Page p)
+    {
+        await p.EvaluateExpressionAsync("$('newszwergLayer').hide();$('newszwergLightbox').hide()");
     }
 
     public delegate Task ElementHandleAction(ElementHandle handle);
@@ -108,7 +114,7 @@ public static class ImperatorHelpers
             return ParseTimeStringWithDays(parts);
         }
 
-        throw new NotImplementedException($"Parsing of Time Strings with a month component not yet available: {input}");
+        throw new NotImplementedException($"Parsing of Time Strings with a month component not (yet?) available: {input}");
     }
 
     private static TimeSpan ParseTimeStringNoDays(string[] parts)

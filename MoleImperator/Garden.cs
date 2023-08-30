@@ -84,9 +84,7 @@ public class PlantTypeData
         return dict;
     }
 
-#pragma warning disable CS8618
     private PlantTypeData()
-#pragma warning restore CS8618
     {
         
     }
@@ -95,7 +93,7 @@ public class PlantTypeData
     public string JarSelector => $"#regal_{(uint)Type}";
     public string SeedAmountSelector => $"#regal_{(uint)Type} .anz";
     public float RefPrice { get; init; }
-    public string InGameName { get; init; }
+    public string InGameName { get; init; } = "";
     public float GrowTimeSeconds { get; init; }
     public float Offspring { get; init; }
     public int XSize { get; init; } = 1;

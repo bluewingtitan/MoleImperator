@@ -18,14 +18,18 @@ var browser = await extra.LaunchAsync(new LaunchOptions
     Headless = true,
     DefaultViewport = new ViewPortOptions
     {
-        Width = 1920,
-        Height = 1080,
+        Width = 1280,
+        Height = 720,
+        DeviceScaleFactor = 0.5,
         IsLandscape = true,
         IsMobile = false,
     },
     Args = new []{"--window-size=1920,1080", @$"--user-agent=""{ImperatorSession.USER_AGENT}"""}
     
 });
+
+AppDomain.CurrentDomain.ProcessExit += async (_, _) => await browser.CloseAsync();
+
 var retryCount = 0;
 var i = 0;
 while (true)
@@ -89,7 +93,7 @@ while (true)
         
         Console.WriteLine($"Exception occured while processing Iteration: {e.GetType().FullName}.");
 
-        if (retryCount > 3)
+        if (retryCount > 30)
         {
             Console.WriteLine("Too many exceptions. Make sure the used account is valid and your internet connection is stable.");
             await browser.CloseAsync();
@@ -97,7 +101,8 @@ while (true)
         }
         
         retryCount++;
-        Console.WriteLine($"Retry {retryCount}/3...");
+        Console.WriteLine($"Retry {retryCount}/30 in 30 seconds...");
+        await Task.Delay(30 * 1000);
         continue;
     }
     retryCount = 0;
