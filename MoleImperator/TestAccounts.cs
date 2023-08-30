@@ -8,5 +8,5 @@
 /// </summary>
 public static class TestAccounts
 {
-    public static readonly ImperatorCredentials MoleImp1 = new ImperatorCredentials(1, "moleimp1", "It's this mole imp1.");
+    public static readonly ImperatorCredentials MoleImp1 = new(1, "moleimp1", "It's this mole imp1.");
 }

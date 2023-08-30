@@ -4,7 +4,7 @@ public class Garden
 {
     public readonly Tile[] Tiles = new Tile[204];
 
-    public readonly Dictionary<PlantType, int> SeedAmounts = new Dictionary<PlantType, int>();
+    public readonly Dictionary<PlantType, int> SeedAmounts = new();
 
     public Garden()
     {
@@ -111,7 +111,7 @@ public enum WimpAnswer
 public class Wimp
 {
     public float Payment { get; init; }
-    public List<WimpRequest> Requests = new List<WimpRequest>();
+    public List<WimpRequest> Requests = new();
     public float TotalMarketPrice => Requests.Sum(e => e.MarketPrice);
 }
 

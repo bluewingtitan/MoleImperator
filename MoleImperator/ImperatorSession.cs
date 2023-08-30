@@ -7,7 +7,7 @@ namespace MoleImperator;
 
 public class ImperatorSession
 {
-    public static readonly CultureInfo CultureInfo = new CultureInfo("de-DE");
+    public static readonly CultureInfo CultureInfo = new("de-DE");
 
     public const string USER_AGENT =
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36";
@@ -590,7 +590,7 @@ public class ImperatorSession
 
     #region Helpers
 
-    private Garden _garden = new Garden();
+    private Garden _garden = new();
 
     public delegate Task PerFieldAction(ElementHandle handle, Page page, Tile tile);
 
@@ -640,7 +640,7 @@ public class ImperatorSession
         
     }
 
-    private Dictionary<MultiFramePage, string> _multiFrameUrls = new Dictionary<MultiFramePage, string>()
+    private Dictionary<MultiFramePage, string> _multiFrameUrls = new()
     {
         { MultiFramePage.Bond_Home, "vertraege/overview.php"},
         { MultiFramePage.Bond_New, "vertraege/new.php"},
@@ -649,7 +649,7 @@ public class ImperatorSession
 
     public async Task OpenMultiPage(MultiFramePage page)
     {
-        if (currentMfPage == page)
+        if (currentMultiFramePage == page)
         {
             return;
         }
@@ -657,7 +657,7 @@ public class ImperatorSession
         if (page == MultiFramePage.None)
         {
             await _page!.EvaluateExpressionAsync("parent.close_page();");
-            currentMfPage = MultiFramePage.None;
+            currentMultiFramePage = MultiFramePage.None;
             return;
         }
         
@@ -670,7 +670,7 @@ public class ImperatorSession
 
     }
     
-    private MultiFramePage currentMfPage = MultiFramePage.None;
+    private MultiFramePage currentMultiFramePage = MultiFramePage.None;
     private ImperatorPage currentPage = ImperatorPage.Garden1;
 
     public async Task NavigateToGarden1()
